@@ -1,0 +1,184 @@
+/* main.css — tokens, layout base, tipografia */
+:root {
+  /* Identidade visual v2 — herdada da prova de conceito no Lovable (paleta terracota/sage/mel/framboesa/céu) */
+  --bg: oklch(0.973 0.016 85);
+  --surface: oklch(0.995 0.006 90);
+  --surface-2: oklch(0.93 0.028 85);
+  --ink: oklch(0.3 0.04 40);
+  --ink-muted: oklch(0.52 0.032 45);
+  --ink-faint: oklch(0.68 0.024 50);
+  --border: oklch(0.9 0.024 78);
+  --accent: oklch(0.6 0.14 40);
+  --accent-dark: oklch(0.5 0.15 38);
+  --accent-tint: oklch(0.93 0.045 45);
+  --good: oklch(0.55 0.1 150);
+  --good-bg: oklch(0.93 0.03 150);
+  --danger: oklch(0.585 0.19 25);
+  --danger-bg: oklch(0.93 0.05 25);
+
+  --cat-housing: oklch(0.6 0.14 40);
+  --cat-groceries: oklch(0.62 0.08 150);
+  --cat-utilities: oklch(0.79 0.13 78);
+  --cat-car: oklch(0.66 0.09 230);
+  --cat-kids: oklch(0.6 0.12 350);
+  --cat-pets: oklch(0.72 0.09 150);
+  --cat-personal: oklch(0.72 0.11 30);
+  --cat-extra: oklch(0.58 0.03 60);
+  --cat-health: oklch(0.58 0.12 300);
+
+  --cat-housing-bg: oklch(0.93 0.045 45);
+  --cat-groceries-bg: oklch(0.93 0.03 150);
+  --cat-utilities-bg: oklch(0.94 0.04 78);
+  --cat-car-bg: oklch(0.93 0.03 230);
+  --cat-kids-bg: oklch(0.93 0.035 350);
+  --cat-pets-bg: oklch(0.94 0.025 150);
+  --cat-personal-bg: oklch(0.94 0.035 30);
+  --cat-extra-bg: oklch(0.93 0.012 60);
+  --cat-health-bg: oklch(0.93 0.035 300);
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 1px 2px oklch(0.35 0.06 40 / 0.05), 0 8px 24px -12px oklch(0.35 0.06 40 / 0.14);
+  --shadow-md: 0 2px 4px oklch(0.35 0.06 40 / 0.06), 0 18px 40px -18px oklch(0.35 0.06 40 / 0.25);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Nunito', system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sidebar-w: 84px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; margin: 0; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-dark); }
+
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+
+#app { min-height: 100vh; }
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.app-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 36px;
+}
+
+.app-sidebar__bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: var(--ink-faint);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.nav-icon:hover { background: var(--surface-2); color: var(--ink); }
+.nav-icon.is-active { background: var(--accent-tint); color: var(--accent); }
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding: 34px 44px 60px;
+}
+
+.view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+
+.view-title {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.view-subtitle {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--ink-muted);
+}
+
+.section-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.empty-state {
+  color: var(--ink-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 32px;
+  text-align: center;
+}
+
+/* mobile: sidebar becomes a bottom tab bar */
+@media (max-width: 860px) {
+  .app-shell { flex-direction: column; }
+  .app-sidebar {
+    width: 100%;
+    height: auto;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 10px 8px;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 20;
+  }
+  .app-sidebar__brand { display: none; }
+  .app-sidebar__nav { flex-direction: row; margin-top: 0; }
+  .app-sidebar__bottom { flex-direction: row; margin-top: 0; }
+  .app-main { padding: 22px 18px 90px; }
+  .view-header { flex-direction: column; }
+  .dash-body { grid-template-columns: 1fr !important; }
+}

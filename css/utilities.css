@@ -1,0 +1,21 @@
+/* utilities.css — pequenos helpers reutilizáveis */
+.u-flex { display: flex; }
+.u-flex-col { display: flex; flex-direction: column; }
+.u-items-center { align-items: center; }
+.u-justify-between { justify-content: space-between; }
+.u-wrap { flex-wrap: wrap; }
+.u-gap-xs { gap: 6px; }
+.u-gap-sm { gap: 12px; }
+.u-gap-md { gap: 18px; }
+.u-w-full { width: 100%; }
+.u-mt-xs { margin-top: 6px; }
+.u-mt-sm { margin-top: 12px; }
+.u-mt-md { margin-top: 20px; }
+.u-mb-sm { margin-bottom: 12px; }
+.u-mb-md { margin-bottom: 20px; }
+.u-hidden { display: none !important; }
+.u-text-muted { color: var(--ink-muted); }
+.u-text-faint { color: var(--ink-faint); }
+.u-text-sm { font-size: 13px; }
+.u-text-center { text-align: center; }
+.u-text-right { text-align: right; }

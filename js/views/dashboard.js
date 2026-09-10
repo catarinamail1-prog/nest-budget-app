@@ -198,7 +198,7 @@ export function renderDashboard(container, { onNavigate } = {}) {
         </div>
         ${categories.length === 0
           ? `<div class="empty-state">${I18n.t('dashboard.noExpenses')}</div>`
-          : categories.map(c => {
+          : `<div class="cat-row__legend">${I18n.t('dashboard.spentVsBudget')}</div>` + categories.map(c => {
               const spent = catSpend[c.key] || 0;
               const pct = c.budget > 0 ? Math.min(100, Math.round((spent / c.budget) * 100)) : (spent > 0 ? 100 : 0);
               return `

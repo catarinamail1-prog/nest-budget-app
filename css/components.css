@@ -91,6 +91,15 @@
 .cat-row__name { font-weight: 600; }
 .cat-row__amounts { color: var(--ink-muted); white-space: nowrap; cursor: pointer; border-bottom: 1px dashed transparent; }
 .cat-row__amounts:hover { border-bottom-color: var(--ink-faint); }
+
+/* Legenda "Gasto / Orçamento" acima da lista — alinhada à direita, no mesmo recuo do corpo de cada
+   linha (36px do ícone + 14px do gap), pra ficar bem em cima da coluna de valores. */
+.cat-row__legend {
+  padding: 0 0 4px 50px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
 .progress-track { height: 6px; background: var(--surface-2); border-radius: 999px; margin-top: 7px; overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 999px; }
 

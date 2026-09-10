@@ -3,7 +3,7 @@ import { I18n } from '../utils/i18n.js';
 import { DB } from '../storage/db.js';
 import { CONFIG } from '../config.js';
 import { icon } from '../utils/icons.js';
-import { formatCurrency, formatDateShort, monthLabel, daysLeftInMonth, isSameMonth, round2 } from '../utils/format.js';
+import { formatCurrency, formatDateShort, monthLabel, monthShortLabel, daysLeftInMonth, isSameMonth, round2 } from '../utils/format.js';
 import { categoryLabel } from '../utils/helpers.js';
 import { showToast } from '../components/toast.js';
 import '../components/app-modal.js';
@@ -98,6 +98,20 @@ export function renderDashboard(container, { onNavigate } = {}) {
 
   const rule = compute503020({ categories, expenses: allExpenses, incomes: allIncomes, referenceDate: now });
 
+  // Tendência de gastos (últimos 6 meses, mês atual incluso) — dá ao Dashboard um gráfico de
+  // barras além da rosca, junto com o card de KPIs colorido, pra ficar mais "cheio"/visual.
+  const trendMonths = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return d;
+  });
+  const trendData = trendMonths.map(d => ({
+    date: d,
+    total: round2(allExpenses
+      .filter(e => e.categoryKey !== CONFIG.SAVINGS_CATEGORY_KEY && isSameMonth(e.date, d))
+      .reduce((s, e) => s + e.amount, 0))
+  }));
+  const trendMax = Math.max(1, ...trendData.map(t => t.total));
+
   // Análise por IA (card "logo abaixo" do 50/30/20): sob demanda, não gerada sozinha a cada
   // abertura do Dashboard — cada geração consome crédito da chave da própria pessoa, então só
   // roda quando ela pede. O resultado fica em cache (DB.getAIInsight/saveAIInsight) até o mês
@@ -129,35 +143,55 @@ export function renderDashboard(container, { onNavigate } = {}) {
     </div>
 
     <div class="kpi-grid">
-      <div class="kpi-card">
-        <span class="kpi-card__icon" style="background:var(--good-bg); color:var(--good);">${icon('wallet', 19)}</span>
+      <div class="kpi-card" style="background:var(--good-bg); border-color:oklch(0.55 0.1 150 / 0.25);">
+        <span class="kpi-card__icon" style="color:var(--good);">${icon('wallet', 19)}</span>
         <span class="kpi-card__label">${I18n.t('dashboard.kpiIncome')}</span>
         <span class="kpi-card__value" style="color:var(--good);">${formatCurrency(incomeThisMonth, currency)}</span>
         <span class="kpi-card__sub">${I18n.t('dashboard.kpiIncomeSub', { net: formatCurrency(netThisMonth, currency) })}</span>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-card__icon" style="background:var(--cat-personal-bg); color:var(--cat-personal);">${icon('cart', 19)}</span>
+      <div class="kpi-card" style="background:var(--cat-personal-bg); border-color:oklch(0.72 0.11 30 / 0.25);">
+        <span class="kpi-card__icon" style="color:var(--cat-personal);">${icon('cart', 19)}</span>
         <span class="kpi-card__label">${I18n.t('dashboard.kpiSpent')}</span>
-        <span class="kpi-card__value">${formatCurrency(spentThisMonth, currency)}</span>
+        <span class="kpi-card__value" style="color:var(--cat-personal);">${formatCurrency(spentThisMonth, currency)}</span>
         <span class="kpi-card__sub">${I18n.t('dashboard.kpiSpentSub', { budget: formatCurrency(totalBudget, currency) })}</span>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-card__icon" style="background:var(--cat-utilities-bg); color:var(--cat-utilities);">${icon('calendar', 19)}</span>
+      <div class="kpi-card" style="background:var(--cat-utilities-bg); border-color:oklch(0.79 0.13 78 / 0.3);">
+        <span class="kpi-card__icon" style="color:var(--cat-utilities);">${icon('calendar', 19)}</span>
         <span class="kpi-card__label">${I18n.t('dashboard.kpiRemaining')}</span>
         <span class="kpi-card__value ${remaining < 0 ? 'kpi-card__value--danger' : 'kpi-card__value--good'}">${formatCurrency(remaining, currency)}</span>
         <span class="kpi-card__sub">${remaining < 0 ? I18n.t('dashboard.kpiRemainingSubOver') : I18n.t('dashboard.kpiRemainingSubLeft', { days: daysLeft })}</span>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-card__icon" style="background:var(--cat-car-bg); color:var(--cat-car);">${icon('piggy', 19)}</span>
+      <div class="kpi-card" style="background:var(--cat-car-bg); border-color:oklch(0.66 0.09 230 / 0.25);">
+        <span class="kpi-card__icon" style="color:var(--cat-car);">${icon('piggy', 19)}</span>
         <span class="kpi-card__label">${I18n.t('dashboard.kpiGoal')}</span>
-        <span class="kpi-card__value">${funds.length > 0 ? formatCurrency(totalSaved, currency) : '—'}</span>
+        <span class="kpi-card__value" style="color:var(--cat-car);">${funds.length > 0 ? formatCurrency(totalSaved, currency) : '—'}</span>
         <span class="kpi-card__sub">${funds.length > 0 ? I18n.t('dashboard.kpiGoalSub', { saved: formatCurrency(totalSaved, currency), goal: formatCurrency(totalFundsTarget, currency) }) : I18n.t('dashboard.kpiGoalSubNoGoal')}</span>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-card__icon" style="background:var(--cat-kids-bg); color:var(--cat-kids);">${icon('checkCircle', 19)}</span>
+      <div class="kpi-card" style="background:var(--cat-kids-bg); border-color:oklch(0.6 0.12 350 / 0.25);">
+        <span class="kpi-card__icon" style="color:var(--cat-kids);">${icon('checkCircle', 19)}</span>
         <span class="kpi-card__label">${I18n.t('dashboard.kpiOnTrack')}</span>
-        <span class="kpi-card__value">${onTrackCount}</span>
+        <span class="kpi-card__value" style="color:var(--cat-kids);">${onTrackCount}</span>
         <span class="kpi-card__sub">${I18n.t('dashboard.kpiOnTrackSub', { total: categories.length })}</span>
+      </div>
+    </div>
+
+    <div class="card u-mb-md">
+      <div class="u-flex u-justify-between u-items-center u-mb-sm">
+        <h3 class="section-title">${I18n.t('dashboard.spendingTrend')}</h3>
+        <span class="u-text-faint u-text-sm">${I18n.t('dashboard.last6Months')}</span>
+      </div>
+      <div class="trend-chart">
+        ${trendData.map((t, idx) => {
+          const isCurrent = idx === trendData.length - 1;
+          const h = trendMax > 0 ? Math.max(4, Math.round((t.total / trendMax) * 100)) : 4;
+          return `
+            <div class="trend-bar-col">
+              <span class="trend-bar-col__amount">${t.total > 0 ? formatCurrency(t.total, currency) : ''}</span>
+              <div class="trend-bar" style="height:${h}%; background:${isCurrent ? 'var(--accent)' : 'var(--accent-tint)'};"></div>
+              <span class="trend-bar-label">${monthShortLabel(lang, t.date)}</span>
+            </div>
+          `;
+        }).join('')}
       </div>
     </div>
 

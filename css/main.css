@@ -82,8 +82,8 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
 .app-sidebar {
   width: var(--sidebar-w);
   flex-shrink: 0;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: var(--ink);
+  border-right: 1px solid oklch(0.22 0.03 38);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -91,6 +91,13 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   position: sticky;
   top: 0;
   height: 100vh;
+}
+
+.app-sidebar__brand {
+  background: oklch(1 0 0 / 0.06);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
 }
 
 .app-sidebar__nav {
@@ -115,14 +122,14 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  color: var(--ink-faint);
+  color: oklch(0.92 0.02 70 / 0.55);
   border: none;
   background: transparent;
   cursor: pointer;
   transition: background .15s, color .15s;
 }
-.nav-icon:hover { background: var(--surface-2); color: var(--ink); }
-.nav-icon.is-active { background: var(--accent-tint); color: var(--accent); }
+.nav-icon:hover { background: oklch(1 0 0 / 0.08); color: oklch(0.97 0.01 70); }
+.nav-icon.is-active { background: oklch(1 0 0 / 0.12); color: var(--cat-utilities); }
 
 .app-main {
   flex: 1;
@@ -181,7 +188,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; colo
     justify-content: space-around;
     padding: 10px 8px;
     border-right: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid oklch(0.22 0.03 38);
     z-index: 20;
   }
   .app-sidebar__brand { display: none; }

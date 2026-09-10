@@ -8,6 +8,40 @@ import { categoryLabel } from '../utils/helpers.js';
 import { showToast } from '../components/toast.js';
 import '../components/app-modal.js';
 import { openExpenseModal } from './expense-modal.js';
+import { compute503020 } from '../modules/budget-rule.js';
+
+// Necessidades/desejos usam a mesma cor de categoria já associada a elas em outras telas
+// (housing/personal); poupança reaproveita o azul --cat-car, o mesmo já usado pro KPI de meta
+// aqui do Dashboard e pra contribuição de cofrinho no Calendário/Análises.
+const RULE_GROUP_STYLE = {
+  needs: { fg: 'var(--cat-housing)', bg: 'var(--cat-housing-bg)', higherIsBetter: false },
+  wants: { fg: 'var(--cat-personal)', bg: 'var(--cat-personal-bg)', higherIsBetter: false },
+  savings: { fg: 'var(--cat-car)', bg: 'var(--cat-car-bg)', higherIsBetter: true }
+};
+
+function ruleRow(group, rule, currency) {
+  const style = RULE_GROUP_STYLE[group];
+  const actualPct = rule.pct[group];
+  const targetPct = rule.target[group];
+  const isGood = style.higherIsBetter ? actualPct >= targetPct : actualPct <= targetPct;
+  const fillWidth = Math.min(100, actualPct);
+  return `
+    <div class="rule-row">
+      <div class="rule-row__top">
+        <span class="rule-row__label">${I18n.t('budgetRule.' + group)}</span>
+        <span class="rule-row__amounts">
+          ${formatCurrency(rule[group], currency)}
+          <strong style="color:${isGood ? 'var(--good)' : 'var(--danger)'};">${actualPct}%</strong>
+          <span class="u-text-faint">${I18n.t('budgetRule.targetPct', { pct: targetPct })}</span>
+        </span>
+      </div>
+      <div class="progress-track rule-row__track">
+        <div class="progress-fill" style="width:${fillWidth}%; background:${style.fg};"></div>
+        <span class="rule-row__target-mark" style="left:${Math.min(100, targetPct)}%;"></span>
+      </div>
+    </div>
+  `;
+}
 
 function buildDonutSegments(items, total) {
   if (total <= 0) return '';
@@ -60,6 +94,8 @@ export function renderDashboard(container, { onNavigate } = {}) {
   const onTrackCount = categories.filter(c => (catSpend[c.key] || 0) <= c.budget).length;
   const donutTotal = round2(displayCats.reduce((s, c) => s + c.spent, 0));
 
+  const rule = compute503020({ categories, expenses: allExpenses, incomes: allIncomes, referenceDate: now });
+
   const recent = allExpenses
     .filter(e => e.categoryKey !== CONFIG.SAVINGS_CATEGORY_KEY)
     .slice()
@@ -109,6 +145,16 @@ export function renderDashboard(container, { onNavigate } = {}) {
         <span class="kpi-card__value">${onTrackCount}</span>
         <span class="kpi-card__sub">${I18n.t('dashboard.kpiOnTrackSub', { total: categories.length })}</span>
       </div>
+    </div>
+
+    <div class="card u-mb-md">
+      <div class="u-flex u-justify-between u-items-center u-mb-sm">
+        <h3 class="section-title">${I18n.t('dashboard.rule503020Title')}</h3>
+        <span class="u-text-faint u-text-sm">${I18n.t('dashboard.rule503020Subtitle')}</span>
+      </div>
+      ${!rule.hasIncome
+        ? `<div class="empty-state">${I18n.t('dashboard.rule503020NoIncome')}</div>`
+        : `<div class="rule-rows">${ruleRow('needs', rule, currency)}${ruleRow('wants', rule, currency)}${ruleRow('savings', rule, currency)}</div>`}
     </div>
 
     <div class="dash-body" style="display:grid; grid-template-columns:1.35fr 1fr; gap:22px;">

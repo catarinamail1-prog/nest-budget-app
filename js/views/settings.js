@@ -4,7 +4,7 @@ import { DB } from '../storage/db.js';
 import { CONFIG } from '../config.js';
 import { icon } from '../utils/icons.js';
 import { categoryLabel } from '../utils/helpers.js';
-import { createCustomCategory } from '../modules/categories.js';
+import { createCustomCategory, categoryGroup } from '../modules/categories.js';
 import { showToast } from '../components/toast.js';
 import '../components/app-modal.js';
 
@@ -48,11 +48,16 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
       </div>
 
       <h3 class="section-title u-mb-sm">${I18n.t('settings.categories')}</h3>
+      <p class="u-text-faint u-text-sm u-mb-sm" style="margin-top:-6px;">${I18n.t('settings.categoryGroupHint')}</p>
       <div class="card u-mb-md">
         ${DB.getCategories().map(c => `
           <div class="review-row">
             <span class="cat-chip" style="background:var(--cat-${c.color}-bg); color:var(--cat-${c.color});">${icon(c.icon, 18)}</span>
             <span style="flex:1;font-weight:600;">${categoryLabel(c)}</span>
+            <select class="u-text-sm" data-cat-group="${c.key}" style="border:1.5px solid var(--border); border-radius:8px; padding:6px 8px; background:var(--surface); color:var(--ink);">
+              <option value="needs" ${categoryGroup(c) === 'needs' ? 'selected' : ''}>${I18n.t('budgetRule.needs')}</option>
+              <option value="wants" ${categoryGroup(c) === 'wants' ? 'selected' : ''}>${I18n.t('budgetRule.wants')}</option>
+            </select>
             ${c.custom ? `<button class="icon-btn icon-btn--danger" data-del-cat="${c.key}" aria-label="${I18n.t('common.delete')}">${icon('trash', 15)}</button>` : ''}
           </div>
         `).join('')}
@@ -125,6 +130,12 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
       DB.addCategory(createCustomCategory(name, { color, icon: 'sparkle', budget: 0 }));
       showToast(I18n.t('toast.categoryAdded'), 'success');
       paint();
+    });
+    container.querySelectorAll('[data-cat-group]').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        DB.updateCategoryGroup(sel.dataset.catGroup, e.target.value);
+        showToast(I18n.t('toast.categoryUpdated'), 'success');
+      });
     });
     container.querySelectorAll('[data-del-cat]').forEach(btn => {
       btn.addEventListener('click', () => {

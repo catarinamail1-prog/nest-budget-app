@@ -65,6 +65,14 @@ export const DB = {
     return cats;
   },
 
+  // Reclassifica uma categoria como necessidade/desejo pra regra 50/30/20 (ver modules/categories.js
+  // categoryGroup — isso só existe pra sobrescrever o padrão do catálogo).
+  updateCategoryGroup(key, group) {
+    const cats = this.getCategories().map(c => c.key === key ? { ...c, group } : c);
+    writeJSON(CONFIG.CATEGORIES_KEY, cats);
+    return cats;
+  },
+
   // Categoria personalizada criada pelo comprador (nome próprio digitado, sem tradução)
   addCategory(category) {
     const cats = [...this.getCategories(), category];

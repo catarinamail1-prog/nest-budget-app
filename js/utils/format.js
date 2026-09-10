@@ -36,6 +36,23 @@ export function monthLabel(lang, date = new Date()) {
   return new Intl.DateTimeFormat(localeFor(lang), { month: 'long' }).format(date);
 }
 
+// Nomes curtos dos dias da semana (Dom..Sáb), no idioma ativo — usado no cabeçalho do Calendário.
+// 4 de janeiro de 1970 é um domingo; construir a partir dele (hora local) evita qualquer
+// depender de fuso: nunca lemos o valor como data, só a posição do dia da semana.
+export function weekdayShortLabels(lang) {
+  const fmt = new Intl.DateTimeFormat(localeFor(lang), { weekday: 'short' });
+  return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(1970, 0, 4 + i)));
+}
+
+export function formatDateLong(isoDate, lang) {
+  try {
+    const d = new Date(isoDate + 'T00:00:00');
+    return new Intl.DateTimeFormat(localeFor(lang), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+  } catch {
+    return isoDate;
+  }
+}
+
 export function daysLeftInMonth(date = new Date()) {
   const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   return Math.max(0, end.getDate() - date.getDate());

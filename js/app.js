@@ -10,6 +10,7 @@ import { renderIncome } from './views/income.js';
 import { renderFunds } from './views/funds.js';
 import { renderWealth } from './views/wealth.js';
 import { renderAnalytics } from './views/analytics.js';
+import { renderCalendar } from './views/calendar.js';
 import { renderSettings } from './views/settings.js';
 
 const NAV_ITEMS = [
@@ -18,7 +19,8 @@ const NAV_ITEMS = [
   { key: 'expenses', icon: 'list' },
   { key: 'funds', icon: 'piggy' },
   { key: 'wealth', icon: 'wallet' },
-  { key: 'analytics', icon: 'chartBar' }
+  { key: 'analytics', icon: 'chartBar' },
+  { key: 'calendar', icon: 'calendar' }
 ];
 
 let activeView = 'dashboard';
@@ -112,6 +114,8 @@ function paintView() {
     renderWealth(view);
   } else if (activeView === 'analytics') {
     renderAnalytics(view);
+  } else if (activeView === 'calendar') {
+    renderCalendar(view);
   } else if (activeView === 'settings') {
     renderSettings(view, {
       onLangChange: () => { paintNav(); paintView(); },

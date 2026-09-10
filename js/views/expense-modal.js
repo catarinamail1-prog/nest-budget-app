@@ -9,7 +9,7 @@ import { categoryLabel } from '../utils/helpers.js';
 import '../components/app-modal.js';
 
 // categories: lista de categorias selecionáveis (sem "savings" — isso é tratado na tela de Poupança)
-export function openExpenseModal(hostContainer, { categories, currency, expense = null, onSaved, onDeleted }) {
+export function openExpenseModal(hostContainer, { categories, currency, expense = null, presetDate = null, onSaved, onDeleted }) {
   const isEdit = !!expense;
   const accounts = DB.getAccounts();
   const el = document.createElement('app-modal');
@@ -26,7 +26,7 @@ export function openExpenseModal(hostContainer, { categories, currency, expense 
       </label>
       <label class="field">
         <span class="field__label">${I18n.t('expense.date')}</span>
-        <input type="date" id="ex-date" value="${expense ? expense.date : formatDateISO()}">
+        <input type="date" id="ex-date" value="${expense ? expense.date : (presetDate || formatDateISO())}">
       </label>
     </div>
     <label class="field">

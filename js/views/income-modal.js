@@ -7,7 +7,7 @@ import { formatDateISO, round2 } from '../utils/format.js';
 import { INCOME_TYPE_ORDER } from '../modules/income-types.js';
 import '../components/app-modal.js';
 
-export function openIncomeModal(hostContainer, { income = null, onSaved, onDeleted }) {
+export function openIncomeModal(hostContainer, { income = null, presetDate = null, onSaved, onDeleted }) {
   const isEdit = !!income;
   const accounts = DB.getAccounts();
   const el = document.createElement('app-modal');
@@ -24,7 +24,7 @@ export function openIncomeModal(hostContainer, { income = null, onSaved, onDelet
       </label>
       <label class="field">
         <span class="field__label">${I18n.t('income.date')}</span>
-        <input type="date" id="in-date" value="${income ? income.date : formatDateISO()}">
+        <input type="date" id="in-date" value="${income ? income.date : (presetDate || formatDateISO())}">
       </label>
     </div>
     <label class="field">

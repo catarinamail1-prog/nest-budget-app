@@ -44,9 +44,18 @@
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Nunito', system-ui, -apple-system, "Segoe UI", sans-serif;
   --sidebar-w: 84px;
+  /* Acessibilidade: nível de zoom da página inteira (ver js/utils/font-scale.js). 1 = 100%. */
+  --app-font-zoom: 1;
 }
 
 * { box-sizing: border-box; }
+
+html {
+  /* Escala a página inteira como o zoom nativo do navegador faria — a forma mais simples de dar
+     um controle de "aumentar/diminuir fonte" sem reescrever as centenas de font-size em px fixo
+     espalhadas pelo resto do CSS pra rem. Também cobre os <app-modal>, que ficam fora de #app. */
+  zoom: var(--app-font-zoom);
+}
 
 html, body {
   margin: 0;

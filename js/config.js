@@ -18,7 +18,7 @@ export const CONFIG = {
   AI_INSIGHT_KEY: 'nest_ai_insight_v1',
   DEFAULT_LANG: 'en',
   DEFAULT_CURRENCY: 'USD',
-  SUPPORTED_LANGS: ['en', 'es', 'fr', 'de', 'pt', 'it'],
+  SUPPORTED_LANGS: ['en', 'es', 'fr', 'de', 'pt-BR', 'pt-PT', 'it'],
   CURRENCIES: {
     USD: { symbol: '$', label: 'USD' },
     EUR: { symbol: '€', label: 'EUR' },

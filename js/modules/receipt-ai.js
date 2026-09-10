@@ -4,30 +4,20 @@
 // Cada provedor tem endpoint, cabeçalhos e formato de resposta próprios; esse módulo padroniza
 // os três atrás de uma única função (scanReceiptImage) que sempre devolve o mesmo formato de saída.
 
-// Modelo padrão de cada provedor — todos multimodais (leem imagem) e de custo baixo. É só um
-// ponto de partida: a pessoa pode trocar em Configurações se o provedor mudar o catálogo depois.
+// Modelo padrão do provedor — multimodal (lê imagem) e de custo baixo. É só um ponto de
+// partida: a pessoa pode trocar em Configurações se o catálogo da Anthropic mudar depois.
+// Só a Anthropic/Claude fica disponível como provedor de IA no app (OpenAI e Gemini foram
+// removidos dos templates de propósito — é a que dá os melhores resultados pra este uso).
 export const AI_PROVIDERS = {
   anthropic: {
     label: 'Anthropic (Claude)',
     defaultModel: 'claude-sonnet-5',
     keyPlaceholder: 'sk-ant-...',
     docsUrl: 'https://console.anthropic.com/settings/keys'
-  },
-  openai: {
-    label: 'OpenAI (ChatGPT)',
-    defaultModel: 'gpt-4o-mini',
-    keyPlaceholder: 'sk-...',
-    docsUrl: 'https://platform.openai.com/api-keys'
-  },
-  gemini: {
-    label: 'Google (Gemini)',
-    defaultModel: 'gemini-3.8-flash',
-    keyPlaceholder: 'AIza...',
-    docsUrl: 'https://aistudio.google.com/app/apikey'
   }
 };
 
-export const AI_PROVIDER_ORDER = ['anthropic', 'openai', 'gemini'];
+export const AI_PROVIDER_ORDER = ['anthropic'];
 
 // Lê um File (input type="file") e devolve { base64, mimeType } — base64 SEM o prefixo
 // "data:...;base64," (cada provedor espera o dado puro, cada um encaixa o prefixo do seu jeito).
@@ -108,45 +98,7 @@ async function callAnthropic({ apiKey, model, base64, mimeType, prompt }) {
   return extractJSON(text);
 }
 
-async function callOpenAI({ apiKey, model, base64, mimeType, prompt }) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      max_tokens: 400,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: prompt },
-          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}` } }
-        ]
-      }]
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || `openai_http_${res.status}`);
-  const text = data?.choices?.[0]?.message?.content;
-  if (!text) throw new Error('empty_response');
-  return extractJSON(text);
-}
-
-async function callGemini({ apiKey, model, base64, mimeType, prompt }) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64 } }] }]
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || `gemini_http_${res.status}`);
-  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-  if (!text) throw new Error('empty_response');
-  return extractJSON(text);
-}
-
-const CALLERS = { anthropic: callAnthropic, openai: callOpenAI, gemini: callGemini };
+const CALLERS = { anthropic: callAnthropic };
 
 // Ponto único de entrada — devolve sempre { description, amount, date, categoryKey } (campos
 // ausentes/ilegíveis viram null, quem chama decide o fallback). Lança erro com uma mensagem

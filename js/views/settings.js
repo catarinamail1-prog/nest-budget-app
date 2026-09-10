@@ -5,15 +5,16 @@ import { CONFIG } from '../config.js';
 import { icon } from '../utils/icons.js';
 import { categoryLabel } from '../utils/helpers.js';
 import { createCustomCategory, categoryGroup } from '../modules/categories.js';
-import { AI_PROVIDERS, AI_PROVIDER_ORDER } from '../modules/receipt-ai.js';
+import { AI_PROVIDERS } from '../modules/receipt-ai.js';
 import { showToast } from '../components/toast.js';
+import { applyFontScale, stepFontScale, clampFontScale, FONT_SCALE_STEPS } from '../utils/font-scale.js';
 import '../components/app-modal.js';
 
 function escapeAttr(str) {
   return String(str ?? '').replace(/"/g, '&quot;');
 }
 
-const LANG_LABELS = { en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch', pt: 'Português', it: 'Italiano' };
+const LANG_LABELS = { en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch', 'pt-BR': 'Português (Brasil)', 'pt-PT': 'Português (Portugal)', it: 'Italiano' };
 const CUSTOM_COLOR_OPTIONS = ['housing', 'groceries', 'utilities', 'car', 'kids', 'pets', 'personal', 'extra'];
 // Nomes amigáveis das famílias de cor disponíveis pra categoria personalizada — não precisa de
 // tradução perfeita, é só pra reconhecer visualmente a cor no <select> (que não renderiza swatches).
@@ -22,7 +23,8 @@ const COLOR_NAMES = {
   es: { housing: 'Terracota', groceries: 'Verde', utilities: 'Ámbar', car: 'Azul', kids: 'Frambuesa', pets: 'Salvia', personal: 'Coral', extra: 'Neutro' },
   fr: { housing: 'Terracotta', groceries: 'Vert', utilities: 'Ambre', car: 'Bleu', kids: 'Baie', pets: 'Sauge', personal: 'Corail', extra: 'Neutre' },
   de: { housing: 'Terrakotta', groceries: 'Grün', utilities: 'Bernstein', car: 'Blau', kids: 'Beere', pets: 'Salbei', personal: 'Koralle', extra: 'Neutral' },
-  pt: { housing: 'Terracota', groceries: 'Verde', utilities: 'Âmbar', car: 'Azul', kids: 'Framboesa', pets: 'Salva', personal: 'Coral', extra: 'Neutro' },
+  'pt-BR': { housing: 'Terracota', groceries: 'Verde', utilities: 'Âmbar', car: 'Azul', kids: 'Framboesa', pets: 'Salva', personal: 'Coral', extra: 'Neutro' },
+  'pt-PT': { housing: 'Terracota', groceries: 'Verde', utilities: 'Âmbar', car: 'Azul', kids: 'Framboesa', pets: 'Salva', personal: 'Coral', extra: 'Neutro' },
   it: { housing: 'Terracotta', groceries: 'Verde', utilities: 'Ambra', car: 'Blu', kids: 'Lampone', pets: 'Salvia', personal: 'Corallo', extra: 'Neutro' }
 };
 
@@ -52,6 +54,14 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
             </select>
           </label>
         </div>
+        <label class="field u-mt-sm">
+          <span class="field__label">${I18n.t('settings.fontSize')}</span>
+          <div class="fontsize-control">
+            <button type="button" class="fontsize-control__btn" id="font-dec" aria-label="${I18n.t('settings.fontSizeDecrease')}" ${clampFontScale(settings.fontScale) <= FONT_SCALE_STEPS[0] ? 'disabled' : ''}>A<span class="fontsize-control__sign">&minus;</span></button>
+            <span class="fontsize-control__value" id="font-value">${Math.round(clampFontScale(settings.fontScale) * 100)}%</span>
+            <button type="button" class="fontsize-control__btn" id="font-inc" aria-label="${I18n.t('settings.fontSizeIncrease')}" ${clampFontScale(settings.fontScale) >= FONT_SCALE_STEPS[FONT_SCALE_STEPS.length - 1] ? 'disabled' : ''}>A<span class="fontsize-control__sign">+</span></button>
+          </div>
+        </label>
       </div>
 
       <h3 class="section-title u-mb-sm">${I18n.t('settings.categories')}</h3>
@@ -89,9 +99,7 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
         <div class="field-row">
           <label class="field">
             <span class="field__label">${I18n.t('settings.aiProvider')}</span>
-            <select id="ai-provider">
-              ${AI_PROVIDER_ORDER.map(p => `<option value="${p}" ${aiSettings.provider === p ? 'selected' : ''}>${AI_PROVIDERS[p].label}</option>`).join('')}
-            </select>
+            <div class="field__static">${icon('sparkles', 16, 2)}${AI_PROVIDERS.anthropic.label}</div>
           </label>
           <label class="field">
             <span class="field__label">${I18n.t('settings.aiModel')}</span>
@@ -182,11 +190,6 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
       });
     });
 
-    container.querySelector('#ai-provider').addEventListener('change', (e) => {
-      const def = AI_PROVIDERS[e.target.value] || AI_PROVIDERS.anthropic;
-      container.querySelector('#ai-model').placeholder = def.defaultModel;
-      container.querySelector('#ai-api-key').placeholder = def.keyPlaceholder;
-    });
     container.querySelector('#ai-toggle-key').addEventListener('click', () => {
       aiKeyVisible = !aiKeyVisible;
       const input = container.querySelector('#ai-api-key');
@@ -194,10 +197,9 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
       container.querySelector('#ai-toggle-key').innerHTML = icon(aiKeyVisible ? 'eyeOff' : 'eye', 18);
     });
     container.querySelector('#ai-save').addEventListener('click', () => {
-      const provider = container.querySelector('#ai-provider').value;
       const apiKey = container.querySelector('#ai-api-key').value.trim();
       const model = container.querySelector('#ai-model').value.trim();
-      DB.saveAISettings({ provider, apiKey, model });
+      DB.saveAISettings({ provider: 'anthropic', apiKey, model });
       showToast(I18n.t('toast.aiSettingsSaved'), 'success');
       paint();
     });
@@ -219,6 +221,19 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
       DB.saveSettings({ currency: e.target.value });
       onLangChange?.(I18n.getLang());
     });
+
+    function changeFontScale(direction) {
+      const current = clampFontScale(DB.getSettings().fontScale);
+      const next = stepFontScale(current, direction);
+      if (next === current) return;
+      DB.saveSettings({ fontScale: next });
+      applyFontScale(next);
+      container.querySelector('#font-value').textContent = `${Math.round(next * 100)}%`;
+      container.querySelector('#font-dec').disabled = next <= FONT_SCALE_STEPS[0];
+      container.querySelector('#font-inc').disabled = next >= FONT_SCALE_STEPS[FONT_SCALE_STEPS.length - 1];
+    }
+    container.querySelector('#font-dec').addEventListener('click', () => changeFontScale(-1));
+    container.querySelector('#font-inc').addEventListener('click', () => changeFontScale(1));
 
     const redoModal = container.querySelector('#redo-modal');
     container.querySelector('#btn-redo-quiz').addEventListener('click', () => redoModal.open());

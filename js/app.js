@@ -1,5 +1,6 @@
 // app.js — ponto de entrada: decide quiz vs. shell principal, monta navegação e view ativa
 import { I18n, detectBrowserLang } from './utils/i18n.js';
+import { applyFontScale } from './utils/font-scale.js';
 import { DB } from './storage/db.js';
 import { CONFIG } from './config.js';
 import { icon, NEST_MARK } from './utils/icons.js';
@@ -36,6 +37,7 @@ function init() {
   }
   const settings = DB.getSettings();
   I18n.setLang(settings.lang || CONFIG.DEFAULT_LANG);
+  applyFontScale(settings.fontScale);
   // Quem já usava a meta de poupança mensal única ganha um cofrinho inicial com esse valor (rodada
   // anterior de features); roda uma única vez, controlado por CONFIG.FUNDS_MIGRATED_KEY.
   DB.migrateGoalToFunds(I18n.t('funds.defaultName'));

@@ -357,7 +357,14 @@ export const DB = {
   },
 
   getSettings() {
-    return readJSON(CONFIG.SETTINGS_KEY, { lang: CONFIG.DEFAULT_LANG, currency: CONFIG.DEFAULT_CURRENCY });
+    const s = readJSON(CONFIG.SETTINGS_KEY, { lang: CONFIG.DEFAULT_LANG, currency: CONFIG.DEFAULT_CURRENCY, fontScale: 1 });
+    // Migração: quem já tinha "pt" salvo (antes do app separar PT-BR/PT-PT) cai no PT-BR, o
+    // público majoritário do produto — sem isso, I18n.setLang cairia silenciosamente pro inglês.
+    if (s.lang === 'pt') s.lang = 'pt-BR';
+    // Quem já tinha configurações salvas antes do controle de tamanho de fonte existir não tem
+    // "fontScale" no objeto — sem isso, cai em "undefined" em vez do 100% padrão.
+    if (typeof s.fontScale !== 'number') s.fontScale = 1;
+    return s;
   },
 
   saveSettings(settings) {
@@ -369,7 +376,11 @@ export const DB = {
   // sentido ela ir dentro de um backup .json que pode ser compartilhado. clearAll() continua
   // removendo, porque "apagar tudo" deve mesmo apagar tudo, inclusive a chave.
   getAISettings() {
-    return readJSON(CONFIG.AI_SETTINGS_KEY, { provider: 'anthropic', apiKey: '', model: '' });
+    const s = readJSON(CONFIG.AI_SETTINGS_KEY, { provider: 'anthropic', apiKey: '', model: '' });
+    // Migração: só a Anthropic/Claude ficou disponível como provedor. Quem tinha OpenAI/Gemini
+    // configurado antes perde a chave salva (não serve pra outro provedor) e precisa reconectar.
+    if (s.provider !== 'anthropic') return { provider: 'anthropic', apiKey: '', model: '' };
+    return s;
   },
 
   saveAISettings(settings) {

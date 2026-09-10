@@ -1,7 +1,7 @@
 // format.js — formatação de moeda, percentual e data
 import { CONFIG } from '../config.js';
 
-const LOCALE_MAP = { en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', pt: 'pt-BR', it: 'it-IT' };
+const LOCALE_MAP = { en: 'en-US', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', 'pt-BR': 'pt-BR', 'pt-PT': 'pt-PT', it: 'it-IT' };
 
 export function localeFor(lang) {
   return LOCALE_MAP[lang] || 'en-US';

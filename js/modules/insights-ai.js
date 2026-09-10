@@ -6,7 +6,7 @@ import { AI_PROVIDERS } from './receipt-ai.js';
 import { formatCurrency } from '../utils/format.js';
 
 const LANG_NAMES = {
-  en: 'English', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', it: 'Italian'
+  en: 'English', es: 'Spanish', fr: 'French', de: 'German', 'pt-BR': 'Brazilian Portuguese', 'pt-PT': 'European Portuguese (Portugal)', it: 'Italian'
 };
 
 // Monta o prompt inteiro a partir do MESMO relatório que a tela de Análises já calcula
@@ -89,33 +89,7 @@ async function callAnthropicText({ apiKey, model, prompt }) {
   return text;
 }
 
-async function callOpenAIText({ apiKey, model, prompt }) {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || `openai_http_${res.status}`);
-  const text = data?.choices?.[0]?.message?.content;
-  if (!text) throw new Error('empty_response');
-  return text.trim();
-}
-
-async function callGeminiText({ apiKey, model, prompt }) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error?.message || `gemini_http_${res.status}`);
-  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
-  if (!text) throw new Error('empty_response');
-  return text.trim();
-}
-
-const CALLERS = { anthropic: callAnthropicText, openai: callOpenAIText, gemini: callGeminiText };
+const CALLERS = { anthropic: callAnthropicText };
 
 function escapeHTML(str) {
   return String(str ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

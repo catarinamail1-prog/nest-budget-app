@@ -9,6 +9,7 @@ import { showToast } from '../components/toast.js';
 import '../components/app-modal.js';
 import { openExpenseModal } from './expense-modal.js';
 import { compute503020 } from '../modules/budget-rule.js';
+import { scanReceiptImage } from '../modules/receipt-ai.js';
 
 // Necessidades/desejos usam a mesma cor de categoria já associada a elas em outras telas
 // (housing/personal); poupança reaproveita o azul --cat-car, o mesmo já usado pro KPI de meta
@@ -110,6 +111,7 @@ export function renderDashboard(container, { onNavigate } = {}) {
       </div>
       <div class="u-flex u-gap-sm">
         <button class="btn btn--ghost" id="btn-scan">${icon('scanFrame', 17)}${I18n.t('dashboard.scanReceipt')}</button>
+        <input type="file" accept="image/*" id="scan-file-input" class="u-hidden">
         <button class="btn btn--primary" id="btn-add">${icon('plus', 17, 2)}${I18n.t('dashboard.addExpense')}</button>
       </div>
     </div>
@@ -229,10 +231,11 @@ export function renderDashboard(container, { onNavigate } = {}) {
       </div>
     </div>
 
-    <app-modal modal-title="${I18n.t('expense.scanTitle')}" id="scan-modal">
-      <p class="u-text-muted" style="margin:0;">${I18n.t('expense.scanBody')}</p>
+    <app-modal modal-title="${I18n.t('expense.scanNoKeyTitle')}" id="scan-modal">
+      <p class="u-text-muted" style="margin:0;">${I18n.t('expense.scanNoKeyBody')}</p>
       <div class="app-modal__actions">
-        <button class="btn btn--primary" id="scan-ok">${I18n.t('expense.scanCta')}</button>
+        <button class="btn btn--ghost" id="scan-manual">${I18n.t('expense.scanNoKeyManual')}</button>
+        <button class="btn btn--primary" id="scan-go-settings">${I18n.t('expense.scanNoKeyGoSettings')}</button>
       </div>
     </app-modal>
 
@@ -248,11 +251,48 @@ export function renderDashboard(container, { onNavigate } = {}) {
     </app-modal>
   `;
 
+  // Escanear recibo: sem chave de IA configurada, abre um aviso levando a Configurações (ou
+  // deixa adicionar manualmente); com chave configurada, pula o aviso e abre direto o seletor de
+  // arquivos do computador — nunca uma câmera ao vivo dentro do painel (mais fácil no computador,
+  // e no celular o próprio seletor do sistema já oferece "tirar foto" como uma das opções).
+  const aiSettings = DB.getAISettings();
+  const hasAIKey = !!(aiSettings && aiSettings.apiKey);
   const scanModal = container.querySelector('#scan-modal');
-  container.querySelector('#btn-scan').addEventListener('click', () => scanModal.open());
-  container.querySelector('#scan-ok').addEventListener('click', () => {
+  const scanBtn = container.querySelector('#btn-scan');
+  const scanFileInput = container.querySelector('#scan-file-input');
+  const scanBtnDefaultHTML = scanBtn.innerHTML;
+
+  scanBtn.addEventListener('click', () => {
+    if (hasAIKey) {
+      scanFileInput.click();
+    } else {
+      scanModal.open();
+    }
+  });
+  container.querySelector('#scan-go-settings').addEventListener('click', () => {
+    scanModal.close();
+    onNavigate?.('settings');
+  });
+  container.querySelector('#scan-manual').addEventListener('click', () => {
     scanModal.close();
     openExpenseModal(container, { categories, currency, onSaved: () => renderDashboard(container, { onNavigate }) });
+  });
+  scanFileInput.addEventListener('change', async () => {
+    const file = scanFileInput.files[0];
+    scanFileInput.value = ''; // limpa pra escolher o mesmo arquivo de novo ainda disparar 'change'
+    if (!file) return;
+    scanBtn.disabled = true;
+    scanBtn.innerHTML = `${icon('scanFrame', 17)}${I18n.t('expense.scanReading')}`;
+    try {
+      const result = await scanReceiptImage({ provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, file, categories });
+      openExpenseModal(container, { categories, currency, presetValues: result, source: 'scan', onSaved: () => renderDashboard(container, { onNavigate }) });
+    } catch (err) {
+      showToast(I18n.t('expense.scanError'), 'error');
+      openExpenseModal(container, { categories, currency, onSaved: () => renderDashboard(container, { onNavigate }) });
+    } finally {
+      scanBtn.disabled = false;
+      scanBtn.innerHTML = scanBtnDefaultHTML;
+    }
   });
 
   container.querySelector('#btn-add').addEventListener('click', () => {

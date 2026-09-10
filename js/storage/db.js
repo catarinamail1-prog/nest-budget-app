@@ -364,9 +364,25 @@ export const DB = {
     writeJSON(CONFIG.SETTINGS_KEY, { ...this.getSettings(), ...settings });
   },
 
+  // ---- conta de IA (leitura de recibo por foto, BYOK) ----
+  // De propósito FORA de exportJSON/importJSON: a chave de API é um segredo da pessoa, não faz
+  // sentido ela ir dentro de um backup .json que pode ser compartilhado. clearAll() continua
+  // removendo, porque "apagar tudo" deve mesmo apagar tudo, inclusive a chave.
+  getAISettings() {
+    return readJSON(CONFIG.AI_SETTINGS_KEY, { provider: 'anthropic', apiKey: '', model: '' });
+  },
+
+  saveAISettings(settings) {
+    writeJSON(CONFIG.AI_SETTINGS_KEY, { ...this.getAISettings(), ...settings });
+  },
+
+  clearAISettings() {
+    localStorage.removeItem(CONFIG.AI_SETTINGS_KEY);
+  },
+
   // ---- reset ----
   clearAll() {
-    [CONFIG.PROFILE_KEY, CONFIG.CATEGORIES_KEY, CONFIG.EXPENSES_KEY, CONFIG.INCOMES_KEY, CONFIG.GOAL_KEY, CONFIG.ACCOUNTS_KEY, CONFIG.DEBTS_KEY, CONFIG.DEBT_PLAN_KEY, CONFIG.FUNDS_KEY, CONFIG.FUNDS_MIGRATED_KEY].forEach(k => localStorage.removeItem(k));
+    [CONFIG.PROFILE_KEY, CONFIG.CATEGORIES_KEY, CONFIG.EXPENSES_KEY, CONFIG.INCOMES_KEY, CONFIG.GOAL_KEY, CONFIG.ACCOUNTS_KEY, CONFIG.DEBTS_KEY, CONFIG.DEBT_PLAN_KEY, CONFIG.FUNDS_KEY, CONFIG.FUNDS_MIGRATED_KEY, CONFIG.AI_SETTINGS_KEY].forEach(k => localStorage.removeItem(k));
   },
 
   // ---- export / import ----

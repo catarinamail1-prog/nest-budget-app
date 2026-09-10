@@ -14,6 +14,7 @@ export const CONFIG = {
   FUNDS_KEY: 'nest_funds_v1',
   FUNDS_MIGRATED_KEY: 'nest_funds_migrated_v1',
   SETTINGS_KEY: 'nest_settings_v1',
+  AI_SETTINGS_KEY: 'nest_ai_settings_v1',
   DEFAULT_LANG: 'en',
   DEFAULT_CURRENCY: 'USD',
   SUPPORTED_LANGS: ['en', 'es', 'fr', 'de', 'pt', 'it'],

@@ -5,8 +5,13 @@ import { CONFIG } from '../config.js';
 import { icon } from '../utils/icons.js';
 import { categoryLabel } from '../utils/helpers.js';
 import { createCustomCategory, categoryGroup } from '../modules/categories.js';
+import { AI_PROVIDERS, AI_PROVIDER_ORDER } from '../modules/receipt-ai.js';
 import { showToast } from '../components/toast.js';
 import '../components/app-modal.js';
+
+function escapeAttr(str) {
+  return String(str ?? '').replace(/"/g, '&quot;');
+}
 
 const LANG_LABELS = { en: 'English', es: 'Español', fr: 'Français', de: 'Deutsch', pt: 'Português', it: 'Italiano' };
 const CUSTOM_COLOR_OPTIONS = ['housing', 'groceries', 'utilities', 'car', 'kids', 'pets', 'personal', 'extra'];
@@ -23,8 +28,10 @@ const COLOR_NAMES = {
 
 export function renderSettings(container, { onLangChange, onHouseholdReset } = {}) {
   const settings = DB.getSettings();
+  let aiKeyVisible = false;
 
   function paint() {
+    const aiSettings = DB.getAISettings();
     container.innerHTML = `
       <div class="view-header">
         <div><h1 class="view-title">${I18n.t('settings.title')}</h1></div>
@@ -73,6 +80,35 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
             </select>
           </label>
           <button class="btn btn--ghost" id="btn-add-cat">${icon('plus', 16, 2)}${I18n.t('settings.addCategory')}</button>
+        </div>
+      </div>
+
+      <h3 class="section-title u-mb-sm">${I18n.t('settings.aiTitle')}</h3>
+      <p class="u-text-faint u-text-sm u-mb-sm" style="margin-top:-6px;">${I18n.t('settings.aiSubtitle')}</p>
+      <div class="card u-mb-md">
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">${I18n.t('settings.aiProvider')}</span>
+            <select id="ai-provider">
+              ${AI_PROVIDER_ORDER.map(p => `<option value="${p}" ${aiSettings.provider === p ? 'selected' : ''}>${AI_PROVIDERS[p].label}</option>`).join('')}
+            </select>
+          </label>
+          <label class="field">
+            <span class="field__label">${I18n.t('settings.aiModel')}</span>
+            <input type="text" id="ai-model" placeholder="${(AI_PROVIDERS[aiSettings.provider] || AI_PROVIDERS.anthropic).defaultModel}" value="${aiSettings.model ? escapeAttr(aiSettings.model) : ''}">
+          </label>
+        </div>
+        <label class="field u-mt-sm">
+          <span class="field__label">${I18n.t('settings.aiApiKey')}</span>
+          <div class="u-flex u-gap-sm">
+            <input type="${aiKeyVisible ? 'text' : 'password'}" id="ai-api-key" style="flex:1;" placeholder="${(AI_PROVIDERS[aiSettings.provider] || AI_PROVIDERS.anthropic).keyPlaceholder}" value="${aiSettings.apiKey ? escapeAttr(aiSettings.apiKey) : ''}">
+            <button type="button" class="icon-btn" id="ai-toggle-key" aria-label="${I18n.t('settings.aiShowKey')}">${icon('eye', 18)}</button>
+          </div>
+        </label>
+        <p class="field__hint u-mt-sm">${I18n.t('settings.aiPrivacyNote')}</p>
+        <div class="u-flex u-gap-sm u-mt-sm">
+          <button class="btn btn--primary" id="ai-save">${I18n.t('settings.aiSave')}</button>
+          ${aiSettings.apiKey ? `<button class="btn btn--ghost" id="ai-clear">${I18n.t('settings.aiClear')}</button>` : ''}
         </div>
       </div>
 
@@ -145,6 +181,34 @@ export function renderSettings(container, { onLangChange, onHouseholdReset } = {
         paint();
       });
     });
+
+    container.querySelector('#ai-provider').addEventListener('change', (e) => {
+      const def = AI_PROVIDERS[e.target.value] || AI_PROVIDERS.anthropic;
+      container.querySelector('#ai-model').placeholder = def.defaultModel;
+      container.querySelector('#ai-api-key').placeholder = def.keyPlaceholder;
+    });
+    container.querySelector('#ai-toggle-key').addEventListener('click', () => {
+      aiKeyVisible = !aiKeyVisible;
+      const input = container.querySelector('#ai-api-key');
+      input.type = aiKeyVisible ? 'text' : 'password';
+      container.querySelector('#ai-toggle-key').innerHTML = icon(aiKeyVisible ? 'eyeOff' : 'eye', 18);
+    });
+    container.querySelector('#ai-save').addEventListener('click', () => {
+      const provider = container.querySelector('#ai-provider').value;
+      const apiKey = container.querySelector('#ai-api-key').value.trim();
+      const model = container.querySelector('#ai-model').value.trim();
+      DB.saveAISettings({ provider, apiKey, model });
+      showToast(I18n.t('toast.aiSettingsSaved'), 'success');
+      paint();
+    });
+    const aiClearBtn = container.querySelector('#ai-clear');
+    if (aiClearBtn) {
+      aiClearBtn.addEventListener('click', () => {
+        DB.clearAISettings();
+        showToast(I18n.t('toast.aiSettingsCleared'), 'success');
+        paint();
+      });
+    }
 
     container.querySelector('#set-lang').addEventListener('change', (e) => {
       DB.saveSettings({ lang: e.target.value });

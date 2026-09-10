@@ -9,30 +9,34 @@ import { categoryLabel } from '../utils/helpers.js';
 import '../components/app-modal.js';
 
 // categories: lista de categorias selecionáveis (sem "savings" — isso é tratado na tela de Poupança)
-export function openExpenseModal(hostContainer, { categories, currency, expense = null, presetDate = null, onSaved, onDeleted }) {
+// presetValues: campos vindos da leitura de recibo por IA (description/amount/date/categoryKey,
+// qualquer um pode faltar) — só usado ao ADICIONAR, nunca ao editar. source: grava em DB.addExpense
+// pra a lista de "gastos recentes" do Dashboard mostrar o ícone de câmera nesse lançamento.
+export function openExpenseModal(hostContainer, { categories, currency, expense = null, presetDate = null, presetValues = null, source = 'manual', onSaved, onDeleted }) {
   const isEdit = !!expense;
   const accounts = DB.getAccounts();
   const el = document.createElement('app-modal');
   el.setAttribute('modal-title', isEdit ? I18n.t('expense.editTitle') : I18n.t('expense.addTitle'));
   el.innerHTML = `
+    ${presetValues ? `<p class="field__hint" style="margin:-6px 0 2px;">${I18n.t('expense.scanReviewHint')}</p>` : ''}
     <label class="field">
       <span class="field__label">${I18n.t('expense.description')}</span>
-      <input type="text" id="ex-desc" placeholder="${I18n.t('expense.descriptionPlaceholder')}" value="${expense ? escapeAttr(expense.description) : ''}">
+      <input type="text" id="ex-desc" placeholder="${I18n.t('expense.descriptionPlaceholder')}" value="${expense ? escapeAttr(expense.description) : escapeAttr(presetValues?.description || '')}">
     </label>
     <div class="field-row">
       <label class="field">
         <span class="field__label">${I18n.t('expense.amount')}</span>
-        <input type="number" min="0" step="0.01" id="ex-amount" value="${expense ? expense.amount : ''}">
+        <input type="number" min="0" step="0.01" id="ex-amount" value="${expense ? expense.amount : (presetValues?.amount ?? '')}">
       </label>
       <label class="field">
         <span class="field__label">${I18n.t('expense.date')}</span>
-        <input type="date" id="ex-date" value="${expense ? expense.date : (presetDate || formatDateISO())}">
+        <input type="date" id="ex-date" value="${expense ? expense.date : (presetValues?.date || presetDate || formatDateISO())}">
       </label>
     </div>
     <label class="field">
       <span class="field__label">${I18n.t('expense.category')}</span>
       <select id="ex-category">
-        ${categories.map(c => `<option value="${c.key}" ${expense && expense.categoryKey === c.key ? 'selected' : ''}>${categoryLabel(c)}</option>`).join('')}
+        ${categories.map(c => `<option value="${c.key}" ${(expense ? expense.categoryKey === c.key : presetValues?.categoryKey === c.key) ? 'selected' : ''}>${categoryLabel(c)}</option>`).join('')}
       </select>
     </label>
     ${accounts.length > 0 ? `
@@ -75,7 +79,7 @@ export function openExpenseModal(hostContainer, { categories, currency, expense 
     if (isEdit) {
       DB.updateExpense(expense.id, { description, amount: round2(amount), date, categoryKey, accountId });
     } else {
-      DB.addExpense({ description, amount: round2(amount), date, categoryKey, accountId, source: 'manual' });
+      DB.addExpense({ description, amount: round2(amount), date, categoryKey, accountId, source });
     }
     showToast(I18n.t('toast.expenseSaved'), 'success');
     close();

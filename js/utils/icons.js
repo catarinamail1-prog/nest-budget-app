@@ -49,7 +49,9 @@ const PATHS = {
   trendingDown: '<path d="M4 8l5 5 4-3 7 8"/><path d="M15 18h5v-5"/>',
   chevronLeft: '<path d="M15 6l-6 6 6 6"/>',
   chevronRight: '<path d="M9 6l6 6-6 6"/>',
-  chartBar: '<rect x="4.5" y="12" width="3.4" height="7.5" rx="1"/><rect x="10.3" y="7.5" width="3.4" height="12" rx="1"/><rect x="16.1" y="4" width="3.4" height="15.5" rx="1"/>'
+  chartBar: '<rect x="4.5" y="12" width="3.4" height="7.5" rx="1"/><rect x="10.3" y="7.5" width="3.4" height="12" rx="1"/><rect x="16.1" y="4" width="3.4" height="15.5" rx="1"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 5.7C11.1 5.6 11.5 5.5 12 5.5c6 0 9.5 6.5 9.5 6.5a17.6 17.6 0 0 1-3.2 4M6.5 7.4C4 9.2 2.5 12 2.5 12S6 18.5 12 18.5c1.4 0 2.6-.3 3.7-.9"/><path d="M9.9 10.1a3 3 0 0 0 4.1 4.1"/>'
 };
 
 export function icon(name, size = 20, strokeWidth = 1.75) {

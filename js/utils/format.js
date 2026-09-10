@@ -36,6 +36,12 @@ export function monthLabel(lang, date = new Date()) {
   return new Intl.DateTimeFormat(localeFor(lang), { month: 'long' }).format(date);
 }
 
+// Versão curta ("Jan", "Fev"...) — usada nos rótulos dos gráficos de tendência anual (Análises),
+// onde 12 nomes completos de mês não cabem lado a lado.
+export function monthShortLabel(lang, date = new Date()) {
+  return new Intl.DateTimeFormat(localeFor(lang), { month: 'short' }).format(date);
+}
+
 // Nomes curtos dos dias da semana (Dom..Sáb), no idioma ativo — usado no cabeçalho do Calendário.
 // 4 de janeiro de 1970 é um domingo; construir a partir dele (hora local) evita qualquer
 // depender de fuso: nunca lemos o valor como data, só a posição do dia da semana.

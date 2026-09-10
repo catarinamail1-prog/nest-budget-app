@@ -132,3 +132,25 @@ export function computeAnalyticsReport({ type, anchor, categories, expenses, inc
     hasAnyData
   };
 }
+
+// Resumo anual mês a mês (visão "Ano" de Análises): renda, gastos e contribuição pra poupança de
+// cada um dos 12 meses do ano informado, mais o saldo acumulado poupado desde janeiro DAQUELE ano
+// (não é o saldo real de nenhum cofrinho — que pode ter começado bem antes —, é só a evolução da
+// poupança dentro do ano selecionado, o suficiente pra mostrar a tendência de crescimento).
+export function computeYearlyTrend({ year, expenses, incomes }) {
+  const isSavings = (e) => e.categoryKey === CONFIG.SAVINGS_CATEGORY_KEY;
+  let cumulative = 0;
+  return Array.from({ length: 12 }, (_, m) => {
+    const start = ymd(year, m, 1);
+    const end = ymd(year, m, daysInMonth(year, m));
+    const inMonth = (dateStr) => dateStr >= start && dateStr <= end;
+    const monthExpenses = expenses.filter(e => !isSavings(e) && inMonth(e.date));
+    const monthSavings = expenses.filter(e => isSavings(e) && inMonth(e.date));
+    const monthIncomes = incomes.filter(i => inMonth(i.date));
+    const income = sum(monthIncomes);
+    const spent = sum(monthExpenses);
+    const saved = sum(monthSavings);
+    cumulative = round2(cumulative + saved);
+    return { month: m, income, expenses: spent, saved, cumulativeSaved: cumulative };
+  });
+}

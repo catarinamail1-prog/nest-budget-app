@@ -4,9 +4,9 @@
 import { I18n } from '../utils/i18n.js';
 import { DB } from '../storage/db.js';
 import { icon } from '../utils/icons.js';
-import { formatCurrency, monthLabel, round2 } from '../utils/format.js';
+import { formatCurrency, monthLabel, monthShortLabel, round2 } from '../utils/format.js';
 import { categoryLabel } from '../utils/helpers.js';
-import { PERIOD_TYPES, getPeriodRange, shiftAnchor, canGoNext, computeAnalyticsReport } from '../modules/analytics.js';
+import { PERIOD_TYPES, getPeriodRange, shiftAnchor, canGoNext, computeAnalyticsReport, computeYearlyTrend } from '../modules/analytics.js';
 import { FUND_TYPE_DEFS } from '../modules/funds.js';
 
 // Mesmo padrão duplicado em funds.js/accounts.js: 'good'/'danger' não seguem a família --cat-*.
@@ -34,6 +34,60 @@ function buildDonutSegments(items, total) {
 
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Gráfico de barras "Renda x Despesas por mês" (visão Ano) — duas barrinhas por mês, altura
+// relativa ao maior valor entre todos os meses (renda ou despesa), sem nenhuma lib de gráfico.
+function buildTrendBarChart(trend, year, lang, currency) {
+  const maxVal = Math.max(1, ...trend.flatMap(t => [t.income, t.expenses]));
+  return `
+    <div class="trend-chart">
+      ${trend.map(t => {
+        const monthDate = new Date(year, t.month, 1);
+        const label = capitalize(monthShortLabel(lang, monthDate));
+        const incomeH = Math.round((t.income / maxVal) * 100);
+        const expenseH = Math.round((t.expenses / maxVal) * 100);
+        const tip = `${capitalize(monthLabel(lang, monthDate))} — ${I18n.t('analytics.kpiIncome')}: ${formatCurrency(t.income, currency)} · ${I18n.t('analytics.kpiExpenses')}: ${formatCurrency(t.expenses, currency)}`;
+        return `
+          <div class="trend-chart__col" title="${tip}">
+            <div class="trend-chart__bars">
+              <span class="trend-bar trend-bar--income" style="height:${incomeH}%;"></span>
+              <span class="trend-bar trend-bar--expense" style="height:${expenseH}%;"></span>
+            </div>
+            <span class="trend-chart__label">${label}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div class="legend u-mt-sm">
+      <span class="legend__item"><span class="legend__dot" style="background:var(--good);"></span>${I18n.t('analytics.kpiIncome')}</span>
+      <span class="legend__item"><span class="legend__dot" style="background:var(--danger);"></span>${I18n.t('analytics.kpiExpenses')}</span>
+    </div>
+  `;
+}
+
+// Gráfico de linha/área "Evolução da poupança" (visão Ano) — saldo acumulado poupado mês a mês,
+// desenhado à mão em SVG (mesmo espírito do donut já usado no resto do app).
+function buildSavingsGrowthChart(trend, year, lang) {
+  const W = 600, H = 150, pad = 10;
+  const maxVal = Math.max(1, ...trend.map(t => t.cumulativeSaved));
+  const points = trend.map((t, i) => {
+    const x = pad + (i * (W - pad * 2)) / (trend.length - 1);
+    const y = H - pad - (t.cumulativeSaved / maxVal) * (H - pad * 2);
+    return [Number(x.toFixed(1)), Number(y.toFixed(1))];
+  });
+  const linePoints = points.map(p => p.join(',')).join(' ');
+  const areaPoints = `${pad},${H - pad} ${linePoints} ${W - pad},${H - pad}`;
+  return `
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="growth-chart">
+      <polyline points="${areaPoints}" class="growth-chart__area"></polyline>
+      <polyline points="${linePoints}" class="growth-chart__line" vector-effect="non-scaling-stroke"></polyline>
+      ${points.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.5" class="growth-chart__dot" vector-effect="non-scaling-stroke"></circle>`).join('')}
+    </svg>
+    <div class="growth-chart__labels">
+      ${trend.map(t => `<span>${capitalize(monthShortLabel(lang, new Date(year, t.month, 1)))}</span>`).join('')}
+    </div>
+  `;
 }
 
 function periodLabel(type, range, lang) {
@@ -88,6 +142,7 @@ export function renderAnalytics(container) {
 
     const donutTotal = round2(report.expenses.byCategory.reduce((s, c) => s + c.spent, 0));
     const fundsWithContribution = report.savings.byFund.filter(f => f.contributed > 0).sort((a, b) => b.contributed - a.contributed);
+    const yearlyTrend = periodType === 'year' ? computeYearlyTrend({ year: report.range.year, expenses, incomes }) : null;
 
     container.innerHTML = `
       <div class="view-header">
@@ -143,6 +198,20 @@ export function renderAnalytics(container) {
       ${!report.hasAnyData ? `
         <div class="empty-state">${I18n.t('analytics.emptyPeriod')}</div>
       ` : `
+        ${periodType === 'year' ? `
+          <div class="card u-mb-md">
+            <h3 class="section-title">${I18n.t('analytics.trendTitle')}</h3>
+            <p class="u-text-faint u-text-sm u-mb-sm" style="margin-top:2px;">${I18n.t('analytics.trendSubtitle', { year: report.range.year })}</p>
+            ${buildTrendBarChart(yearlyTrend, report.range.year, lang, currency)}
+          </div>
+          <div class="card u-mb-md">
+            <h3 class="section-title">${I18n.t('analytics.savingsGrowthTitle')}</h3>
+            <p class="u-text-faint u-text-sm u-mb-sm" style="margin-top:2px;">${I18n.t('analytics.savingsGrowthSubtitle', { year: report.range.year })}</p>
+            ${yearlyTrend.every(t => t.saved === 0)
+              ? `<p class="u-text-muted u-text-sm" style="margin:0;">${I18n.t('analytics.savingsGrowthEmpty', { year: report.range.year })}</p>`
+              : buildSavingsGrowthChart(yearlyTrend, report.range.year, lang)}
+          </div>
+        ` : ''}
         <div class="dash-body" style="display:grid; grid-template-columns:1.35fr 1fr; gap:22px;">
           <div class="card">
             <div class="u-flex u-justify-between u-items-center u-mb-sm">

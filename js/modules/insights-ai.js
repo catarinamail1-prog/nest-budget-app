@@ -61,19 +61,31 @@ async function callAnthropicText({ apiKey, model, prompt }) {
     // "empty_response" na conta da Catarina: a chamada nem chegou a dar erro HTTP, só devolveu um
     // bloco de raciocínio em vez de um bloco de texto).
     body: JSON.stringify({
+      // max_tokens generoso de propósito: mesmo com thinking desligado, o tokenizer dos modelos
+      // mais novos (Sonnet 5+) gera bem mais tokens pro mesmo texto do que os modelos antigos —
+      // 700 podia cortar a resposta no meio (stop_reason "max_tokens", sem sobrar texto nenhum).
       model,
-      max_tokens: 700,
+      max_tokens: 1500,
       thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: prompt }]
     })
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message || `anthropic_http_${res.status}`);
+  // Recusa por política: a Anthropic devolve HTTP 200 (não um erro) com stop_reason "refusal" —
+  // precisa checar isso ANTES de aceitar o texto, porque um bloco parcial não é uma análise válida.
   if (data?.stop_reason === 'refusal') throw new Error('anthropic_refusal');
   // Nunca ler content[0].text por posição — filtra por type, porque o primeiro bloco pode não ser
   // texto (thinking, ou blocos futuros que a API venha a adicionar).
   const text = (Array.isArray(data?.content) ? data.content : []).filter(b => b?.type === 'text').map(b => b.text).join('\n').trim();
-  if (!text) throw new Error('empty_response');
+  if (!text) {
+    // Diagnóstico rico em vez de só "empty_response": guarda o stop_reason e os tipos de bloco que
+    // vieram (ex: só "thinking", ou nenhum bloco) — assim, se acontecer nova falha, a mensagem já
+    // diz o motivo exato (recusa por política, corte por limite de tokens, etc.) sem precisar
+    // investigar de novo do zero.
+    const blockTypes = (Array.isArray(data?.content) ? data.content : []).map(b => b?.type).join(',') || 'none';
+    throw new Error(`empty_response (stop_reason=${data?.stop_reason ?? 'unknown'}, blocks=${blockTypes})`);
+  }
   return text;
 }
 

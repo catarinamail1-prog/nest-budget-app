@@ -81,8 +81,10 @@ async function callAnthropic({ apiKey, model, base64, mimeType, prompt }) {
     // max_tokens (aqui só 400) antes de sobrar espaço pra resposta, e faz content[0] virar um bloco
     // { type: "thinking" } em vez de texto (ver nota igual em modules/insights-ai.js).
     body: JSON.stringify({
+      // max_tokens com folga: o tokenizer dos modelos mais novos (Sonnet 5+) gasta mais tokens por
+      // resposta que os antigos, mesmo com thinking desligado — 400 era justo demais.
       model,
-      max_tokens: 400,
+      max_tokens: 700,
       thinking: { type: 'disabled' },
       messages: [{
         role: 'user',
@@ -98,7 +100,11 @@ async function callAnthropic({ apiKey, model, base64, mimeType, prompt }) {
   if (data?.stop_reason === 'refusal') throw new Error('anthropic_refusal');
   // Nunca ler content[0].text por posição — filtra por type (mesmo motivo do módulo de insights).
   const text = (Array.isArray(data?.content) ? data.content : []).filter(b => b?.type === 'text').map(b => b.text).join('\n').trim();
-  if (!text) throw new Error('empty_response');
+  if (!text) {
+    // Diagnóstico rico em vez de só "empty_response" (mesmo motivo do módulo de insights).
+    const blockTypes = (Array.isArray(data?.content) ? data.content : []).map(b => b?.type).join(',') || 'none';
+    throw new Error(`empty_response (stop_reason=${data?.stop_reason ?? 'unknown'}, blocks=${blockTypes})`);
+  }
   return extractJSON(text);
 }
 

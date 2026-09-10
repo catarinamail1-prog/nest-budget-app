@@ -59,7 +59,7 @@ export function icon(name, size = 20, strokeWidth = 1.75) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 }
 
-export const NEST_MARK = `<svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+export const BRAND_MARK = `<svg width="26" height="26" viewBox="0 0 28 28" fill="none">
   <path d="M4 16c0 5 4.5 8 10 8s10-3 10-8" stroke="#E0633F" stroke-width="2" stroke-linecap="round"></path>
   <path d="M7 13c0 4 3.5 6.5 7 6.5s7-2.5 7-6.5" stroke="#E0633F" stroke-width="2" stroke-linecap="round" opacity="0.5"></path>
   <circle cx="14" cy="10" r="3.2" fill="#D9A23B"></circle>

@@ -3,7 +3,7 @@ import { I18n, detectBrowserLang } from './utils/i18n.js';
 import { applyFontScale } from './utils/font-scale.js';
 import { DB } from './storage/db.js';
 import { CONFIG } from './config.js';
-import { icon, NEST_MARK } from './utils/icons.js';
+import { icon, BRAND_MARK } from './utils/icons.js';
 import { renderQuiz } from './views/quiz.js';
 import { renderDashboard } from './views/dashboard.js';
 import { renderExpenses } from './views/expenses.js';
@@ -69,7 +69,7 @@ function renderShell() {
   app.innerHTML = `
     <div class="app-shell">
       <aside class="app-sidebar">
-        <div class="app-sidebar__brand">${NEST_MARK}</div>
+        <div class="app-sidebar__brand">${BRAND_MARK}</div>
         <nav class="app-sidebar__nav" id="app-nav"></nav>
         <div class="app-sidebar__bottom">
           <button class="nav-icon ${activeView === 'settings' ? 'is-active' : ''}" id="nav-settings" aria-label="${I18n.t('nav.settings')}">${icon('gear', 20)}</button>

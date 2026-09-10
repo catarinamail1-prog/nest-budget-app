@@ -3,7 +3,7 @@ import { I18n } from '../utils/i18n.js';
 import { DB } from '../storage/db.js';
 import { CONFIG } from '../config.js';
 import { buildCategoriesFromProfile } from '../modules/categories.js';
-import { icon, NEST_MARK } from '../utils/icons.js';
+import { icon, BRAND_MARK } from '../utils/icons.js';
 import { round2, formatDateISO } from '../utils/format.js';
 import { categoryLabel } from '../utils/helpers.js';
 
@@ -176,7 +176,7 @@ export function renderQuiz(container, { onComplete, existingProfile } = {}) {
       <div class="quiz-shell">
         <div class="quiz-panel">
           <div class="quiz-topbar">
-            <div class="quiz-brand">${NEST_MARK}<span>${I18n.t('app.title')}</span></div>
+            <div class="quiz-brand">${BRAND_MARK}<span>${I18n.t('app.title')}</span></div>
             <span class="quiz-step-label">${I18n.t('quiz.stepLabel', { current: step, total: TOTAL_STEPS })}</span>
           </div>
           <div class="quiz-progress"><div class="quiz-progress__fill" style="width:${(step / TOTAL_STEPS) * 100}%"></div></div>

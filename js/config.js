@@ -1,8 +1,11 @@
 // config.js — configuração central do produto
 export const CONFIG = {
-  PRODUCT_NAME: 'Nest',
-  PRODUCT_SLUG: 'nest-budget',
+  PRODUCT_NAME: 'The Ultimate Annual Budget',
+  PRODUCT_SLUG: 'ultimate-annual-budget',
   VERSION: '1.0.0',
+  // As chaves de localStorage abaixo começam com "nest_" por herança do nome de trabalho
+  // anterior do produto — são só identificadores internos, nunca aparecem pro usuário, então
+  // não foram renomeadas (mudar isso não traz benefício e arrisca perder dados de teste salvos).
   PROFILE_KEY: 'nest_profile_v1',
   CATEGORIES_KEY: 'nest_categories_v1',
   EXPENSES_KEY: 'nest_expenses_v1',

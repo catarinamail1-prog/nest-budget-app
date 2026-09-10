@@ -1,6 +1,6 @@
 // modules/receipt-ai.js — leitura de recibo por IA (BYOK: a pessoa cola a própria chave de API
 // em Configurações). A foto e a chave viajam DIRETO do navegador pro provedor escolhido — nunca
-// passam por um servidor do Nest, porque o Nest não tem servidor nenhum, é só HTML/JS estático.
+// passam por um servidor nosso, porque o app não tem servidor nenhum, é só HTML/JS estático.
 // Cada provedor tem endpoint, cabeçalhos e formato de resposta próprios; esse módulo padroniza
 // os três atrás de uma única função (scanReceiptImage) que sempre devolve o mesmo formato de saída.
 

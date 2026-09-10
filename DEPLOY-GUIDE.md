@@ -1,4 +1,4 @@
-# Nest — Guia de publicação (repositório novo)
+# The Ultimate Annual Budget — Guia de publicação (repositório novo)
 
 O app já está pronto e testado localmente. Faltam só os passos de sempre para colocar no ar — desta vez em um repositório e projeto Vercel **novos**, separados do `webapps-store`.
 
@@ -16,7 +16,7 @@ A forma mais confiável (evita o problema de não conseguir selecionar a pasta i
 - **Opção A — arrastar a pasta** (Chrome ou Edge): na página do repositório recém-criado, clique em "uploading an existing file" e **arraste a pasta `nest-budget-app` inteira** (descompactada) do seu computador para a área de upload. O Chrome/Edge preserva a estrutura de pastas quando você arrasta uma pasta de verdade (não funciona com clique + seleção de arquivos).
 - **Opção B — GitHub Desktop**: se preferir não depender do navegador, o [GitHub Desktop](https://desktop.github.com/) permite apontar para a pasta local e sincronizar tudo de uma vez, sem esse tipo de limitação.
 
-Confirme o commit ("Add Nest app files" ou similar).
+Confirme o commit ("Add app files" ou similar).
 
 ## 3. Criar o projeto no Vercel
 

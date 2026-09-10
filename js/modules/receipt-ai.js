@@ -76,9 +76,14 @@ async function callAnthropic({ apiKey, model, base64, mimeType, prompt }) {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
+    // thinking desligado: é só leitura de recibo -> JSON, não precisa de raciocínio, e sem isso
+    // modelos mais novos (Claude Sonnet 5+) ligam "adaptive thinking" sozinhos — o que consome o
+    // max_tokens (aqui só 400) antes de sobrar espaço pra resposta, e faz content[0] virar um bloco
+    // { type: "thinking" } em vez de texto (ver nota igual em modules/insights-ai.js).
     body: JSON.stringify({
       model,
       max_tokens: 400,
+      thinking: { type: 'disabled' },
       messages: [{
         role: 'user',
         content: [
@@ -90,7 +95,9 @@ async function callAnthropic({ apiKey, model, base64, mimeType, prompt }) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message || `anthropic_http_${res.status}`);
-  const text = data?.content?.[0]?.text;
+  if (data?.stop_reason === 'refusal') throw new Error('anthropic_refusal');
+  // Nunca ler content[0].text por posição — filtra por type (mesmo motivo do módulo de insights).
+  const text = (Array.isArray(data?.content) ? data.content : []).filter(b => b?.type === 'text').map(b => b.text).join('\n').trim();
   if (!text) throw new Error('empty_response');
   return extractJSON(text);
 }

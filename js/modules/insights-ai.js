@@ -53,13 +53,28 @@ async function callAnthropicText({ apiKey, model, prompt }) {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model, max_tokens: 700, messages: [{ role: 'user', content: prompt }] })
+    // thinking desligado de propósito: é só um resumo em texto simples a partir de números que já
+    // demos pronto, não precisa de raciocínio. Sem isso, modelos mais novos (Claude Sonnet 5 em
+    // diante) ligam "adaptive thinking" sozinhos, o que (a) gasta o max_tokens ANTES da resposta em
+    // si — podia esgotar o orçamento e não sobrar nada pra resposta — e (b) faz content[0] virar um
+    // bloco { type: "thinking" } sem .text, quebrando quem lê content[0].text direto (foi o motivo do
+    // "empty_response" na conta da Catarina: a chamada nem chegou a dar erro HTTP, só devolveu um
+    // bloco de raciocínio em vez de um bloco de texto).
+    body: JSON.stringify({
+      model,
+      max_tokens: 700,
+      thinking: { type: 'disabled' },
+      messages: [{ role: 'user', content: prompt }]
+    })
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error?.message || `anthropic_http_${res.status}`);
-  const text = data?.content?.[0]?.text;
+  if (data?.stop_reason === 'refusal') throw new Error('anthropic_refusal');
+  // Nunca ler content[0].text por posição — filtra por type, porque o primeiro bloco pode não ser
+  // texto (thinking, ou blocos futuros que a API venha a adicionar).
+  const text = (Array.isArray(data?.content) ? data.content : []).filter(b => b?.type === 'text').map(b => b.text).join('\n').trim();
   if (!text) throw new Error('empty_response');
-  return text.trim();
+  return text;
 }
 
 async function callOpenAIText({ apiKey, model, prompt }) {

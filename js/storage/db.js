@@ -380,9 +380,22 @@ export const DB = {
     localStorage.removeItem(CONFIG.AI_SETTINGS_KEY);
   },
 
+  // ---- análise de gastos por IA (cache) ----
+  // Guarda só a ÚLTIMA análise gerada, com o mês (YYYY-MM) a que ela se refere — o Dashboard
+  // decide se mostra "gerar" ou "gerar de novo" comparando esse mês com o mês atual. Regenerável
+  // a qualquer momento, então fica de fora de exportJSON/importJSON de propósito (assim como
+  // AI_SETTINGS_KEY, mas aqui não é por ser segredo, é só por não ser dado essencial de backup).
+  getAIInsight() {
+    return readJSON(CONFIG.AI_INSIGHT_KEY, null);
+  },
+
+  saveAIInsight({ text, month }) {
+    writeJSON(CONFIG.AI_INSIGHT_KEY, { text, month, generatedAt: new Date().toISOString() });
+  },
+
   // ---- reset ----
   clearAll() {
-    [CONFIG.PROFILE_KEY, CONFIG.CATEGORIES_KEY, CONFIG.EXPENSES_KEY, CONFIG.INCOMES_KEY, CONFIG.GOAL_KEY, CONFIG.ACCOUNTS_KEY, CONFIG.DEBTS_KEY, CONFIG.DEBT_PLAN_KEY, CONFIG.FUNDS_KEY, CONFIG.FUNDS_MIGRATED_KEY, CONFIG.AI_SETTINGS_KEY].forEach(k => localStorage.removeItem(k));
+    [CONFIG.PROFILE_KEY, CONFIG.CATEGORIES_KEY, CONFIG.EXPENSES_KEY, CONFIG.INCOMES_KEY, CONFIG.GOAL_KEY, CONFIG.ACCOUNTS_KEY, CONFIG.DEBTS_KEY, CONFIG.DEBT_PLAN_KEY, CONFIG.FUNDS_KEY, CONFIG.FUNDS_MIGRATED_KEY, CONFIG.AI_SETTINGS_KEY, CONFIG.AI_INSIGHT_KEY].forEach(k => localStorage.removeItem(k));
   },
 
   // ---- export / import ----

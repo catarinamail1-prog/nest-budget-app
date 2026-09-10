@@ -10,6 +10,8 @@ import '../components/app-modal.js';
 import { openExpenseModal } from './expense-modal.js';
 import { compute503020 } from '../modules/budget-rule.js';
 import { scanReceiptImage } from '../modules/receipt-ai.js';
+import { generateSpendingInsight } from '../modules/insights-ai.js';
+import { computeAnalyticsReport } from '../modules/analytics.js';
 
 // Necessidades/desejos usam a mesma cor de categoria já associada a elas em outras telas
 // (housing/personal); poupança reaproveita o azul --cat-car, o mesmo já usado pro KPI de meta
@@ -42,6 +44,19 @@ function ruleRow(group, rule, currency) {
       </div>
     </div>
   `;
+}
+
+function escapeHTML(str) {
+  return String(str ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// A IA devolve prosa simples (sem markdown); só precisamos preservar os parágrafos que ela
+// separou por linha em branco, escapando tudo antes — nunca confiar em HTML vindo da IA.
+function renderInsightText(text) {
+  return String(text || '')
+    .split(/\n{2,}/)
+    .map(p => `<p class="ai-insight-para">${escapeHTML(p.trim()).replace(/\n/g, '<br>')}</p>`)
+    .join('');
 }
 
 function buildDonutSegments(items, total) {
@@ -96,6 +111,17 @@ export function renderDashboard(container, { onNavigate } = {}) {
   const donutTotal = round2(displayCats.reduce((s, c) => s + c.spent, 0));
 
   const rule = compute503020({ categories, expenses: allExpenses, incomes: allIncomes, referenceDate: now });
+
+  // Análise por IA (card "logo abaixo" do 50/30/20): sob demanda, não gerada sozinha a cada
+  // abertura do Dashboard — cada geração consome crédito da chave da própria pessoa, então só
+  // roda quando ela pede. O resultado fica em cache (DB.getAIInsight/saveAIInsight) até o mês
+  // virar ou ela pedir pra gerar de novo, pra não perder a última análise ao só recarregar a página.
+  const aiSettings = DB.getAISettings();
+  const hasAIKey = !!(aiSettings && aiSettings.apiKey);
+  const monthKey = now.toISOString().slice(0, 7);
+  const cachedInsight = DB.getAIInsight();
+  const hasInsightForThisMonth = !!(cachedInsight && cachedInsight.month === monthKey);
+  const hasAnalyticsData = incomeThisMonth > 0 || spentThisMonth > 0;
 
   const recent = allExpenses
     .filter(e => e.categoryKey !== CONFIG.SAVINGS_CATEGORY_KEY)
@@ -157,6 +183,24 @@ export function renderDashboard(container, { onNavigate } = {}) {
       ${!rule.hasIncome
         ? `<div class="empty-state">${I18n.t('dashboard.rule503020NoIncome')}</div>`
         : `<div class="rule-rows">${ruleRow('needs', rule, currency)}${ruleRow('wants', rule, currency)}${ruleRow('savings', rule, currency)}</div>`}
+    </div>
+
+    <div class="card u-mb-md" id="ai-insight-card">
+      <div class="u-flex u-justify-between u-items-center u-mb-sm">
+        <h3 class="section-title">${I18n.t('dashboard.aiInsightTitle')}</h3>
+        ${hasInsightForThisMonth ? `<span class="u-text-faint u-text-sm">${I18n.t('dashboard.aiInsightGeneratedAt', { date: formatDateShort(cachedInsight.generatedAt.slice(0, 10), lang) })}</span>` : ''}
+      </div>
+      ${!hasAIKey ? `
+        <p class="u-text-muted u-text-sm" style="margin:0 0 10px;">${I18n.t('dashboard.aiInsightNoKeyBody')}</p>
+        <button class="btn btn--ghost" id="ai-insight-go-settings">${I18n.t('expense.scanNoKeyGoSettings')}</button>
+      ` : !hasAnalyticsData ? `
+        <p class="u-text-muted u-text-sm" style="margin:0;">${I18n.t('dashboard.aiInsightEmpty')}</p>
+      ` : `
+        <div id="ai-insight-body">
+          ${hasInsightForThisMonth ? renderInsightText(cachedInsight.text) : `<p class="u-text-muted u-text-sm" style="margin:0 0 10px;">${I18n.t('dashboard.aiInsightIntro')}</p>`}
+        </div>
+        <button class="btn btn--ghost u-mt-sm" id="ai-insight-generate">${hasInsightForThisMonth ? I18n.t('dashboard.aiInsightRegenerate') : I18n.t('dashboard.aiInsightGenerate')}</button>
+      `}
     </div>
 
     <div class="dash-body" style="display:grid; grid-template-columns:1.35fr 1fr; gap:22px;">
@@ -255,8 +299,6 @@ export function renderDashboard(container, { onNavigate } = {}) {
   // deixa adicionar manualmente); com chave configurada, pula o aviso e abre direto o seletor de
   // arquivos do computador — nunca uma câmera ao vivo dentro do painel (mais fácil no computador,
   // e no celular o próprio seletor do sistema já oferece "tirar foto" como uma das opções).
-  const aiSettings = DB.getAISettings();
-  const hasAIKey = !!(aiSettings && aiSettings.apiKey);
   const scanModal = container.querySelector('#scan-modal');
   const scanBtn = container.querySelector('#btn-scan');
   const scanFileInput = container.querySelector('#scan-file-input');
@@ -294,6 +336,34 @@ export function renderDashboard(container, { onNavigate } = {}) {
       scanBtn.innerHTML = scanBtnDefaultHTML;
     }
   });
+
+  // Análise por IA: sempre sob demanda (nunca dispara sozinha ao abrir o Dashboard, porque cada
+  // geração consome crédito da própria chave da pessoa). O resultado fica em cache por mês em
+  // DB.saveAIInsight, então recarregar a página não perde a última análise gerada.
+  const insightGoSettingsBtn = container.querySelector('#ai-insight-go-settings');
+  if (insightGoSettingsBtn) {
+    insightGoSettingsBtn.addEventListener('click', () => onNavigate?.('settings'));
+  }
+  const insightGenBtn = container.querySelector('#ai-insight-generate');
+  if (insightGenBtn) {
+    insightGenBtn.addEventListener('click', async () => {
+      const originalLabel = insightGenBtn.textContent;
+      insightGenBtn.disabled = true;
+      insightGenBtn.textContent = I18n.t('dashboard.aiInsightGenerating');
+      try {
+        const accounts = DB.getAccounts();
+        const debts = DB.getDebts();
+        const report = computeAnalyticsReport({ type: 'month', anchor: now, categories, expenses: allExpenses, incomes: allIncomes, funds, accounts, debts });
+        const text = await generateSpendingInsight({ provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, report, rule, lang, currency });
+        DB.saveAIInsight({ text, month: monthKey });
+        renderDashboard(container, { onNavigate });
+      } catch (err) {
+        showToast(I18n.t('dashboard.aiInsightError'), 'error');
+        insightGenBtn.disabled = false;
+        insightGenBtn.textContent = originalLabel;
+      }
+    });
+  }
 
   container.querySelector('#btn-add').addEventListener('click', () => {
     openExpenseModal(container, { categories, currency, onSaved: () => renderDashboard(container, { onNavigate }) });

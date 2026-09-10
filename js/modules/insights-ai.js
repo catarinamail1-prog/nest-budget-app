@@ -90,6 +90,22 @@ async function callGeminiText({ apiKey, model, prompt }) {
 
 const CALLERS = { anthropic: callAnthropicText, openai: callOpenAIText, gemini: callGeminiText };
 
+function escapeHTML(str) {
+  return String(str ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// A IA devolve prosa simples (sem markdown); só precisamos preservar os parágrafos que ela
+// separou por linha em branco, escapando tudo antes — nunca confiar em HTML vindo da IA. Centralizado
+// aqui (em vez de duplicado por tela, como outros helpers pequenos do app) porque tanto o card do
+// Dashboard quanto a página dedicada de Análise da IA precisam do MESMO escaping — duas cópias
+// divergindo é como um dos dois lugares acaba renderizando HTML não escapado por engano.
+export function renderInsightHTML(text) {
+  return String(text || '')
+    .split(/\n{2,}/)
+    .map(p => `<p class="ai-insight-para">${escapeHTML(p.trim()).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
 // report: o retorno de computeAnalyticsReport({ type: 'month', ... }). rule: o retorno de
 // compute503020(...). currency: o código salvo em Settings — a formatação em si (fmt) é feita
 // aqui dentro com o formatCurrency já importado por quem chama, pra não duplicar a lógica de

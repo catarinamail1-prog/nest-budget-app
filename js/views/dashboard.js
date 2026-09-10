@@ -10,8 +10,7 @@ import '../components/app-modal.js';
 import { openExpenseModal } from './expense-modal.js';
 import { compute503020 } from '../modules/budget-rule.js';
 import { scanReceiptImage } from '../modules/receipt-ai.js';
-import { generateSpendingInsight } from '../modules/insights-ai.js';
-import { computeAnalyticsReport } from '../modules/analytics.js';
+import { renderInsightHTML } from '../modules/insights-ai.js';
 
 // Necessidades/desejos usam a mesma cor de categoria já associada a elas em outras telas
 // (housing/personal); poupança reaproveita o azul --cat-car, o mesmo já usado pro KPI de meta
@@ -44,19 +43,6 @@ function ruleRow(group, rule, currency) {
       </div>
     </div>
   `;
-}
-
-function escapeHTML(str) {
-  return String(str ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-}
-
-// A IA devolve prosa simples (sem markdown); só precisamos preservar os parágrafos que ela
-// separou por linha em branco, escapando tudo antes — nunca confiar em HTML vindo da IA.
-function renderInsightText(text) {
-  return String(text || '')
-    .split(/\n{2,}/)
-    .map(p => `<p class="ai-insight-para">${escapeHTML(p.trim()).replace(/\n/g, '<br>')}</p>`)
-    .join('');
 }
 
 function buildDonutSegments(items, total) {
@@ -195,11 +181,12 @@ export function renderDashboard(container, { onNavigate } = {}) {
         <button class="btn btn--ghost" id="ai-insight-go-settings">${I18n.t('expense.scanNoKeyGoSettings')}</button>
       ` : !hasAnalyticsData ? `
         <p class="u-text-muted u-text-sm" style="margin:0;">${I18n.t('dashboard.aiInsightEmpty')}</p>
+      ` : hasInsightForThisMonth ? `
+        <div class="ai-insight-teaser">${renderInsightHTML(String(cachedInsight.text || '').split(/\n{2,}/)[0])}</div>
+        <button class="btn btn--ghost u-mt-sm" id="ai-insight-view">${I18n.t('dashboard.aiInsightViewFull')}</button>
       ` : `
-        <div id="ai-insight-body">
-          ${hasInsightForThisMonth ? renderInsightText(cachedInsight.text) : `<p class="u-text-muted u-text-sm" style="margin:0 0 10px;">${I18n.t('dashboard.aiInsightIntro')}</p>`}
-        </div>
-        <button class="btn btn--ghost u-mt-sm" id="ai-insight-generate">${hasInsightForThisMonth ? I18n.t('dashboard.aiInsightRegenerate') : I18n.t('dashboard.aiInsightGenerate')}</button>
+        <p class="u-text-muted u-text-sm" style="margin:0 0 10px;">${I18n.t('dashboard.aiInsightIntro')}</p>
+        <button class="btn btn--ghost" id="ai-insight-view">${I18n.t('dashboard.aiInsightGenerate')}</button>
       `}
     </div>
 
@@ -329,7 +316,10 @@ export function renderDashboard(container, { onNavigate } = {}) {
       const result = await scanReceiptImage({ provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, file, categories });
       openExpenseModal(container, { categories, currency, presetValues: result, source: 'scan', onSaved: () => renderDashboard(container, { onNavigate }) });
     } catch (err) {
-      showToast(I18n.t('expense.scanError'), 'error');
+      // Anexa a mensagem crua do provedor (ex: "model not found", "invalid x-api-key") ao toast —
+      // sem isso o erro genérico não dava pra diagnosticar (foi o caso real de "claude-3-5-sonnet-latest"
+      // ter sido descontinuado pela Anthropic e a mensagem só dizer "confira sua conta e tente de novo").
+      showToast(`${I18n.t('expense.scanError')} (${err?.message || err})`, 'error');
       openExpenseModal(container, { categories, currency, onSaved: () => renderDashboard(container, { onNavigate }) });
     } finally {
       scanBtn.disabled = false;
@@ -337,32 +327,18 @@ export function renderDashboard(container, { onNavigate } = {}) {
     }
   });
 
-  // Análise por IA: sempre sob demanda (nunca dispara sozinha ao abrir o Dashboard, porque cada
-  // geração consome crédito da própria chave da pessoa). O resultado fica em cache por mês em
-  // DB.saveAIInsight, então recarregar a página não perde a última análise gerada.
+  // Análise por IA: o card do Dashboard é só uma prévia/atalho (título + primeiro parágrafo da
+  // última análise, se houver) — a geração em si (botão gerar/regenerar, texto completo) mora na
+  // página dedicada "Análise da IA" (views/ai-insights.js), aberta pelo ícone novo na barra lateral
+  // ou por este atalho. Fica assim mais visível (tem destino próprio) sem duplicar a lógica de
+  // chamada da IA em dois lugares.
   const insightGoSettingsBtn = container.querySelector('#ai-insight-go-settings');
   if (insightGoSettingsBtn) {
     insightGoSettingsBtn.addEventListener('click', () => onNavigate?.('settings'));
   }
-  const insightGenBtn = container.querySelector('#ai-insight-generate');
-  if (insightGenBtn) {
-    insightGenBtn.addEventListener('click', async () => {
-      const originalLabel = insightGenBtn.textContent;
-      insightGenBtn.disabled = true;
-      insightGenBtn.textContent = I18n.t('dashboard.aiInsightGenerating');
-      try {
-        const accounts = DB.getAccounts();
-        const debts = DB.getDebts();
-        const report = computeAnalyticsReport({ type: 'month', anchor: now, categories, expenses: allExpenses, incomes: allIncomes, funds, accounts, debts });
-        const text = await generateSpendingInsight({ provider: aiSettings.provider, apiKey: aiSettings.apiKey, model: aiSettings.model, report, rule, lang, currency });
-        DB.saveAIInsight({ text, month: monthKey });
-        renderDashboard(container, { onNavigate });
-      } catch (err) {
-        showToast(I18n.t('dashboard.aiInsightError'), 'error');
-        insightGenBtn.disabled = false;
-        insightGenBtn.textContent = originalLabel;
-      }
-    });
+  const insightViewBtn = container.querySelector('#ai-insight-view');
+  if (insightViewBtn) {
+    insightViewBtn.addEventListener('click', () => onNavigate?.('ai-insights'));
   }
 
   container.querySelector('#btn-add').addEventListener('click', () => {

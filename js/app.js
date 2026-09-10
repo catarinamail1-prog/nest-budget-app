@@ -9,12 +9,14 @@ import { renderExpenses } from './views/expenses.js';
 import { renderIncome } from './views/income.js';
 import { renderFunds } from './views/funds.js';
 import { renderWealth } from './views/wealth.js';
+import { renderAIInsights } from './views/ai-insights.js';
 import { renderAnalytics } from './views/analytics.js';
 import { renderCalendar } from './views/calendar.js';
 import { renderSettings } from './views/settings.js';
 
 const NAV_ITEMS = [
   { key: 'dashboard', icon: 'grid' },
+  { key: 'ai-insights', icon: 'sparkles' },
   { key: 'income', icon: 'income' },
   { key: 'expenses', icon: 'list' },
   { key: 'funds', icon: 'piggy' },
@@ -104,6 +106,8 @@ function paintView() {
   const view = document.getElementById('app-view');
   if (activeView === 'dashboard') {
     renderDashboard(view, { onNavigate: (v) => { activeView = v; paintNav(); paintView(); } });
+  } else if (activeView === 'ai-insights') {
+    renderAIInsights(view, { onNavigate: (v) => { activeView = v; paintNav(); paintView(); } });
   } else if (activeView === 'income') {
     renderIncome(view);
   } else if (activeView === 'expenses') {

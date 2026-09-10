@@ -227,9 +227,19 @@
   .growth-chart__labels span:nth-child(even) { visibility: hidden; }
 }
 
-/* ---- análise de gastos por IA (Dashboard) ---- */
+/* ---- análise de gastos por IA (Dashboard + página dedicada) ---- */
 .ai-insight-para { margin: 0 0 10px; line-height: 1.55; color: var(--ink); font-size: 14.5px; }
 .ai-insight-para:last-child { margin-bottom: 0; }
+
+/* Prévia no card do Dashboard: só o primeiro parágrafo, cortado em 3 linhas — o texto completo
+   mora na página dedicada (ícone novo na barra lateral), pra não duplicar a geração em dois lugares. */
+.ai-insight-teaser .ai-insight-para {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 /* ---- badge de variação vs. período anterior ---- */
 .delta-badge { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }

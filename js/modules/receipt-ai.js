@@ -9,7 +9,7 @@
 export const AI_PROVIDERS = {
   anthropic: {
     label: 'Anthropic (Claude)',
-    defaultModel: 'claude-3-5-sonnet-latest',
+    defaultModel: 'claude-sonnet-5',
     keyPlaceholder: 'sk-ant-...',
     docsUrl: 'https://console.anthropic.com/settings/keys'
   },
@@ -21,7 +21,7 @@ export const AI_PROVIDERS = {
   },
   gemini: {
     label: 'Google (Gemini)',
-    defaultModel: 'gemini-1.5-flash',
+    defaultModel: 'gemini-3.8-flash',
     keyPlaceholder: 'AIza...',
     docsUrl: 'https://aistudio.google.com/app/apikey'
   }
